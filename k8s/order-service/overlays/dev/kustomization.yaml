@@ -1,0 +1,16 @@
+resources:
+  - ../../base
+  - aws-secretproviderclass.yaml
+
+namespace: cilium-shop
+
+configMapGenerator:
+  - name: orders-dev-env
+    envs:
+      - orders.dev.env
+
+patches:
+  - path: dev-deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: orders
