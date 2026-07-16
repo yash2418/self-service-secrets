@@ -1,0 +1,37 @@
+# RBAC for the secret-update / secret-create WorkflowTemplates.
+# secret-ops-sa runs on nodes whose instance profile already grants Secrets
+# Manager access - no IRSA annotation needed, but every pod scheduled on
+# those nodes gets the same AWS permissions unless you later move to IRSA.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: secret-ops-sa
+  namespace: argo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secret-ops-role
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/status"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: secret-ops-binding
+subjects:
+  - kind: ServiceAccount
+    name: secret-ops-sa
+    namespace: argo
+roleRef:
+  kind: ClusterRole
+  name: secret-ops-role
+  apiGroup: rbac.authorization.k8s.io

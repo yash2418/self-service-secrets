@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-api-service-dev
+  namespace: argocd
+  annotations:
+    # Matched by catalog-info.yaml's argocd/app-name so Backstage's ArgoCD
+    # plugin can surface this Application's sync/health status.
+    backstage.io/kubernetes-id: sample-api-service
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yash2418/self-service-secrets.git
+    targetRevision: feature/add-argo-workflow
+    path: Kustomize/Services/Sample_Api_Service/Overlays/Dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sample-api-service-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

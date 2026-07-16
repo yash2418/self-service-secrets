@@ -1,0 +1,61 @@
+# Full, env-specific Deployment (not a Base+patch merge) so the
+# secret-update/secret-create WorkflowTemplates can find and parse it directly
+# via `find $OVERLAY_DIR -iname 'deployment*.yaml'`.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-api-service
+  labels:
+    app: sample-api-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample-api-service
+  template:
+    metadata:
+      labels:
+        app: sample-api-service
+    spec:
+      serviceAccountName: sample-api-service
+      containers:
+        - name: sample-api-service
+          image: 951734991809.dkr.ecr.ap-south-1.amazonaws.com/sample-app-service:latest
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: sample-api-service-secret
+                  key: DB_HOST
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sample-api-service-secret
+                  key: DB_PASSWORD
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sample-api-service-secret
+                  key: API_KEY
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: /mnt/secrets-store
+              readOnly: true
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: sample-api-service-dev-spc
