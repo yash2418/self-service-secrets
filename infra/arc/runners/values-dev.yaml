@@ -1,0 +1,49 @@
+# Helm values for the Dev runner scale set - installed as its own Helm
+# release (NOT kubectl apply -f), since the gha-runner-scale-set-controller
+# (v0.14.2 here) deletes any AutoscalingRunnerSet whose
+# `app.kubernetes.io/version` label doesn't match its own build version.
+# Only `helm install`/`helm template` of the matching chart version stamps
+# that label - a hand-authored manifest applied directly never carries it,
+# so the controller deletes it on the next reconcile loop.
+#
+# The chart also creates a namespace-scoped Role/RoleBinding granting the
+# controller's own ServiceAccount permission to create pods/secrets/
+# serviceaccounts inside runners-dev - the controller's cluster-wide
+# ClusterRole only has `list` on those, so this per-scale-set RBAC (which
+# only Helm generates) is required too, separate from
+# infra/arc/rbac/dev-rolebinding.yaml (which is the *workload* RBAC letting
+# the runner pod itself touch secrets/deployments).
+#
+# Install/upgrade:
+#   helm upgrade --install dev-runners \
+#     oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set \
+#     --version 0.14.2 \
+#     --namespace runners-dev \
+#     -f infra/arc/runners/values-dev.yaml
+#
+# Chart --version MUST match the installed controller's build version:
+#   kubectl get deploy -n arc-systems arc-gha-rs-controller \
+#     -o jsonpath='{.metadata.labels.app\.kubernetes\.io/version}'
+githubConfigUrl: "https://github.com/yash2418/self-service-secrets"
+githubConfigSecret: gha-runner-github-secret
+minRunners: 0
+maxRunners: 2
+
+# Explicit rather than relying on the chart's label-based auto-discovery of
+# the controller's ServiceAccount - keeps this file correct even if that
+# discovery label ever changes on the controller Deployment.
+controllerServiceAccount:
+  name: arc-gha-rs-controller
+  namespace: arc-systems
+
+template:
+  spec:
+    serviceAccountName: secret-ops-dev-runner
+    containers:
+      # Container name must be "runner" - ARC matches on this name to
+      # inject its env vars/volume mounts. command overrides the base
+      # actions-runner image's entrypoint.sh (which does its own
+      # registration flow) so the pod just runs the job listener's job.
+      - name: runner
+        image: 951734991809.dkr.ecr.ap-south-1.amazonaws.com/acr-runner-tools:latest
+        command: ["/home/runner/run.sh"]
