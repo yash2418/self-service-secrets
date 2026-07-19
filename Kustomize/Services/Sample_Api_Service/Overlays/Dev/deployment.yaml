@@ -70,6 +70,11 @@ spec:
                 secretKeyRef:
                   name: sample-api-service-secret
                   key: USER_SERVICE_BASE_URL
+            - name: TEST_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sample-api-service-secret
+                  key: TEST_KEY
           readinessProbe:
             httpGet:
               path: /readyz
