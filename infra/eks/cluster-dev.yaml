@@ -1,0 +1,26 @@
+# eksctl config for a throwaway/test cluster to exercise the Argo Workflows
+# + Argo CD + Secrets Store CSI flow end-to-end. No `vpc:` block is set, so
+# eksctl creates and manages a new VPC (public+private subnets across 2 AZs)
+# rather than requiring an existing one.
+#
+# Create:  eksctl create cluster -f infra/eks/cluster-dev.yaml
+# Delete:  eksctl delete cluster -f infra/eks/cluster-dev.yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: sample-api-service-dev
+  region: ap-south-1
+  version: "1.34"
+
+iam:
+  withOIDC: true   # required for IRSA - eksctl create iamserviceaccount, ASCP pod identity
+
+managedNodeGroups:
+  - name: default-ng
+    instanceType: t3.medium
+    desiredCapacity: 1
+    minSize: 1
+    maxSize: 1
+    volumeSize: 20
+    privateNetworking: false
