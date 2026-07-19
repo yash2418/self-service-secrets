@@ -50,6 +50,11 @@ spec:
                 secretKeyRef:
                   name: sample-api-service-secret
                   key: BUCKET_NAME
+            - name: SENDGRID_URL
+              valueFrom:
+                secretKeyRef:
+                  name: sample-api-service-secret
+                  key: SENDGRID_URL
           readinessProbe:
             httpGet:
               path: /readyz
