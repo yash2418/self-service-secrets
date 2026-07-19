@@ -16,3 +16,10 @@ rules:
   - apiGroups: ["apps"]
     resources: ["deployments/status"]
     verbs: ["get"]
+  # secret-create's apply-changes job applies the merged SecretProviderClass
+  # directly rather than waiting on Argo CD's own sync - patch/create cover
+  # both the update-existing and (future) create-new-SPC cases kubectl
+  # apply can take depending on whether the object already exists.
+  - apiGroups: ["secrets-store.csi.x-k8s.io"]
+    resources: ["secretproviderclasses"]
+    verbs: ["get", "list", "patch", "create"]
