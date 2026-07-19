@@ -45,6 +45,11 @@ spec:
                 secretKeyRef:
                   name: sample-api-service-secret
                   key: PAYMENT_BASE_URL
+            - name: BUCKET_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: sample-api-service-secret
+                  key: BUCKET_NAME
           readinessProbe:
             httpGet:
               path: /readyz
