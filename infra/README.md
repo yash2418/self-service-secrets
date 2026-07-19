@@ -50,12 +50,12 @@ aws iam create-policy \
 
 eksctl create iamserviceaccount \
   --cluster sample-api-service-dev \
-  --region us-east-1 \
+  --region ap-south-1 \
   --namespace sample-api-service-dev \
   --name sample-api-service \
   --attach-policy-arn arn:aws:iam::951734991809:policy/sample-api-service-dev-secrets-read \
   --role-only --role-name sample-api-service-dev-irsa \
-  --approve
+  --approve --profile devops
 
 aws iam get-role --role-name sample-api-service-dev-irsa --query Role.Arn --output text
 ```

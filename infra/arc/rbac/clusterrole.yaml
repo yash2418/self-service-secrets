@@ -1,0 +1,18 @@
+# Shared rules for anything that resyncs a CSI-synced secret and restarts a
+# deployment. Grants nothing by itself - each env's RoleBinding
+# (dev-rolebinding.yaml) binds it within just that one namespace, so no
+# single principal gets cluster-wide access.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secret-ops-role
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/status"]
+    verbs: ["get"]

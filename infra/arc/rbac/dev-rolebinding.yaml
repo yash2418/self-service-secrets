@@ -1,0 +1,15 @@
+# Binds the Dev runner's ServiceAccount (runners-dev namespace) to the shared
+# ClusterRole in clusterrole.yaml, scoped to just this one namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: secret-ops-dev-binding
+  namespace: sample-api-service-dev
+subjects:
+  - kind: ServiceAccount
+    name: secret-ops-dev-runner
+    namespace: runners-dev
+roleRef:
+  kind: ClusterRole
+  name: secret-ops-role
+  apiGroup: rbac.authorization.k8s.io
