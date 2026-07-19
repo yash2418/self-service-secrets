@@ -116,7 +116,68 @@ of hardcoding these inline:
 secretsmanager` calls from the in-cluster runner) - same variable, no
 separate setup needed.
 
-## 6. Verify
+## 6. Set up the Argo CD Project Role for secret-create's apply-changes job
+
+`apply-changes` triggers an Argo CD sync via the Argo CD API (the
+`argocd app sync` CLI, baked into the runner image in
+`infra/arc/runners/Dockerfile`) rather than kubectl-applying manifests
+directly. It authenticates with a **Project Role token** scoped to
+`sync`-only on one Application - not the Argo CD admin account.
+
+```
+# One-time: add the role + policy to the default AppProject.
+kubectl patch appproject default -n argocd --type merge -p '{
+  "spec": {
+    "roles": [
+      {
+        "name": "secret-ops-sync",
+        "description": "Sync-only access for secret-create workflow automation",
+        "policies": [
+          "p, proj:default:secret-ops-sync, applications, sync, default/sample-api-service-dev, allow"
+        ]
+      }
+    ]
+  }
+}'
+```
+
+Generating the actual token needs one authenticated call to the Argo CD
+API - bootstrap with the initial admin password (this is the only place it's
+used; the resulting token is scoped far narrower):
+
+```
+kubectl port-forward svc/argocd-server -n argocd 8443:443 &
+
+ADMIN_PW=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 -d)
+
+SESSION_TOKEN=$(curl -sk -X POST https://localhost:8443/api/v1/session \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"admin\",\"password\":\"${ADMIN_PW}\"}" | jq -r .token)
+
+curl -sk -X POST https://localhost:8443/api/v1/projects/default/roles/secret-ops-sync/token \
+  -H "Authorization: Bearer ${SESSION_TOKEN}" -H "Content-Type: application/json" -d '{}' \
+  | jq -r .token
+```
+
+Argo CD only returns that token once - it can't be retrieved again later
+(`argocd proj role list-tokens` shows metadata like issue time, not the
+token itself). Set it immediately:
+
+1. **Settings -> Secrets and variables -> Actions -> Secrets tab -> New
+   repository secret**. Name `ARGOCD_AUTH_TOKEN`, value the token above.
+2. **Variables tab -> New repository variable**. Name `ARGOCD_SERVER`,
+   value `argocd-server.argocd.svc.cluster.local` - the in-cluster DNS name
+   for the Service, reachable from the dev-runners pod without needing the
+   NodePort or any external address. No port suffix needed; `argocd` CLI
+   defaults to 443, matching the Service's HTTPS port.
+
+If you ever need to revoke it: `argocd-server` has no `--insecure` flag set
+(check `kubectl get deploy argocd-server -n argocd -o jsonpath='{.spec.template.spec.containers[0].args}'`),
+so it's serving HTTPS with the default self-signed cert - that's why
+`apply-changes` passes `--insecure` (client-side skip-verify) to `argocd
+app sync`, not because the server itself is unencrypted.
+
+## 7. Verify
 
 ```
 kubectl get pods -n kube-system -l app=csi-secrets-store
@@ -127,7 +188,7 @@ kubectl get secret sample-api-service-secret -n sample-api-service-dev
 kubectl exec -n sample-api-service-dev deploy/sample-api-service -- ls /mnt/secrets-store
 ```
 
-## 7. Tear down
+## 8. Tear down
 
 ```
 eksctl delete cluster -f eks/cluster-dev.yaml
