@@ -110,19 +110,35 @@ tab in GitHub, labeled `dev-runners`.
 
 ## 7. Configure GitHub Environments
 
-`.github/workflows/secret-update.yml` gates jobs with `environment:
-${{ inputs.environment }}`. In **Settings -> Environments**, create one
-Environment per enum value used in the workflow's `environment` choice input
-(just `Dev` right now - name must match exactly, case-sensitive). Add more
-Environments (and required reviewers on `Prod`) as they're wired up in the
-workflow.
+`.github/workflows/secret-update.yml` gates both `update-aws-secret` and
+`restart-deployment` on `environment: ${{ inputs.environment }}` (e.g.
+`Dev`). GitHub only asks for approval once per (workflow run, environment),
+not per job, so required reviewers on this one Environment blocks the whole
+run - both the AWS Secrets Manager write and the rollout restart - behind a
+single approval.
+
+1. Go to **Settings -> Environments -> New environment**.
+2. Name it `Dev` (must match the workflow's `environment` choice input
+   exactly, case-sensitive).
+3. On `Dev`'s settings page, check **Required reviewers**, add yourself (or
+   whoever should approve these runs) in the search box, and **Save
+   protection rules**.
+4. Repeat for `Prod` once it's wired up.
+
+Once `Dev` has a required reviewer, every `secret-update` run will pause
+before `update-aws-secret` and show up under the repo's **Actions** tab (and
+to the reviewer, in their notifications) waiting on approval - one approval
+then carries the run through both gated jobs.
 
 ## 8. Test it
 
 Trigger `secret-update` via **Actions -> secret-update -> Run workflow**
 with `service: Sample_Api_Service`, `environment: Dev`,
 `namespace: sample-api-service-dev`, and a real `env-var-name`/`new-value`.
-Watch the job land on a pod in `runners-dev`:
+Before `update-aws-secret` starts, the run will sit waiting until a `Dev`
+reviewer approves it from the run's **Review deployments** button - that
+one approval also covers `restart-deployment` right after. Watch the job
+land on a pod in `runners-dev`:
 
 ```
 kubectl get pods -n runners-dev -w
