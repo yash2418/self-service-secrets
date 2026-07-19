@@ -11,7 +11,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/yash2418/self-service-secrets.git
-    targetRevision: feature/add-argo-workflow
+    targetRevision: main
     path: Kustomize/Services/Sample_Api_Service/Overlays/Dev
   destination:
     server: https://kubernetes.default.svc
