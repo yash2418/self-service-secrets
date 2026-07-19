@@ -50,7 +50,7 @@ aws iam create-policy --policy-name sample-api-service-dev-secrets-read \
   --policy-document file://infra/eks/iam-policy-secrets-read.json
 
 eksctl create iamserviceaccount \
-  --cluster sample-api-service-dev --region us-east-1 \
+  --cluster sample-api-service-dev --region ap-south-1 \
   --namespace runners-dev --name secret-ops-dev-runner \
   --attach-policy-arn arn:aws:iam::<ACCOUNT_ID>:policy/sample-api-service-dev-secrets-read \
   --role-only --role-name secret-ops-dev-runner-irsa --approve
