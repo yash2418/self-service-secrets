@@ -75,6 +75,11 @@ spec:
                 secretKeyRef:
                   name: sample-api-service-secret
                   key: TEST_KEY
+            - name: REDIS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: sample-api-service-secret
+                  key: REDIS_HOST
           readinessProbe:
             httpGet:
               path: /readyz
