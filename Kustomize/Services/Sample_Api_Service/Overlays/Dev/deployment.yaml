@@ -80,6 +80,11 @@ spec:
                 secretKeyRef:
                   name: sample-api-service-secret
                   key: REDIS_HOST
+            - name: REPORTING_SVC_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: sample-api-service-secret
+                  key: REPORTING_SVC_BASE_URL
           readinessProbe:
             httpGet:
               path: /readyz
